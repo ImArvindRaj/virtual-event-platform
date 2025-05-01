@@ -1,0 +1,25 @@
+{
+  "name": "virtual-event-platform",
+  "version": "1.0.0",
+  "description": "Virtual events platform that makes it effortless to host and attend online gatherings.",
+  "main": "index.js",
+ "scripts": {
+  "dev:client": "npm --prefix client run dev",
+  "dev:server": "npm --prefix server run dev",
+  "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\""
+},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ImArvindRaj/virtual-event-platform.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ImArvindRaj/virtual-event-platform/issues"
+  },
+  "homepage": "https://github.com/ImArvindRaj/virtual-event-platform#readme",
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
