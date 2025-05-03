@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import cors from "cors";
 import { closeDb, connectToDatabase } from "./utils/db";
 import auth from "./routes/auth";
+import events from "./routes/events";
 
 dotenv.config();
 
@@ -11,6 +12,7 @@ const port = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 app.use('/api',auth)
+app.use('/api/events',events)
 
 app.get("/", (req, res) => {
   res.send("Hello World1!");
