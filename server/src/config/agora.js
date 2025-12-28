@@ -13,22 +13,22 @@ export const generateRtcToken = (channelName, uid, role = 'publisher', expiratio
     throw new Error('AGORA_APP_CERTIFICATE is not defined in environment variables');
   }
 
-  // Convert uid to number if it's a string
-  const numericUid = typeof uid === 'string' ? parseInt(uid, 10) : uid;
-  
+  // Calculate privilege expiration timestamp (Unix time in seconds)
   const currentTimestamp = Math.floor(Date.now() / 1000);
   const privilegeExpiredTs = currentTimestamp + expirationTimeInSeconds;
-  
+
+  // Map role string to RtcRole constant
   const roleType = role === 'publisher' ? RtcRole.PUBLISHER : RtcRole.SUBSCRIBER;
-  
-  const token = RtcTokenBuilder.buildTokenWithUid(
+
+  // Use buildTokenWithAccount for string UIDs (like MongoDB ObjectIds)
+  const token = RtcTokenBuilder.buildTokenWithAccount(
     appId,
     appCertificate,
     channelName,
-    numericUid,
+    uid, // Pass the string UID directly using Account method
     roleType,
     privilegeExpiredTs
   );
-  
+
   return token;
 };

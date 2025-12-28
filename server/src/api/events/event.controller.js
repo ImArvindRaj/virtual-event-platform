@@ -5,19 +5,19 @@ export const createEvent = async (req, res, next) => {
   try {
     const db = getDB();
     const events = db.collection('events');
-    
+
     const newEvent = {
       ...req.body,
-      hostId: new ObjectId(req.user._id),
+      hostId: req.user._id,
       attendees: [],
       status: 'upcoming',
       agoraChannel: `event_${new ObjectId()}_${Date.now()}`,
-      createdAt: new Date(),
-      updatedAt: new Date()
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     };
-    
+
     const result = await events.insertOne(newEvent);
-    
+
     res.status(201).json({
       success: true,
       data: { ...newEvent, _id: result.insertedId }
@@ -31,12 +31,22 @@ export const getEvents = async (req, res, next) => {
   try {
     const db = getDB();
     const events = db.collection('events');
-    
-    const allEvents = await events
-      .find({})
-      .sort({ scheduledAt: 1 })
-      .toArray();
-    
+
+    // Use aggregation to populate organizer details
+    const allEvents = await events.aggregate([
+      { $sort: { scheduledAt: 1 } },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'hostId',
+          foreignField: '_id',
+          as: 'organizer',
+          pipeline: [{ $project: { password: 0 } }]
+        }
+      },
+      { $unwind: { path: '$organizer', preserveNullAndEmptyArrays: true } }
+    ]).toArray();
+
     res.status(200).json({
       success: true,
       count: allEvents.length,
@@ -47,20 +57,34 @@ export const getEvents = async (req, res, next) => {
   }
 };
 
+
 export const getEvent = async (req, res, next) => {
   try {
     const db = getDB();
     const events = db.collection('events');
-    
-    const event = await events.findOne({ _id: new ObjectId(req.params.id) });
-    
+
+    // Use aggregation to populate organizer details
+    const [event] = await events.aggregate([
+      { $match: { _id: new ObjectId(req.params.id) } },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'hostId',
+          foreignField: '_id',
+          as: 'organizer',
+          pipeline: [{ $project: { password: 0 } }]
+        }
+      },
+      { $unwind: { path: '$organizer', preserveNullAndEmptyArrays: true } }
+    ]).toArray();
+
     if (!event) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Event not found' 
+      return res.status(404).json({
+        success: false,
+        message: 'Event not found'
       });
     }
-    
+
     res.status(200).json({
       success: true,
       data: event
@@ -74,34 +98,34 @@ export const updateEvent = async (req, res, next) => {
   try {
     const db = getDB();
     const events = db.collection('events');
-    
+
     const event = await events.findOne({ _id: new ObjectId(req.params.id) });
-    
+
     if (!event) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Event not found' 
+      return res.status(404).json({
+        success: false,
+        message: 'Event not found'
       });
     }
-    
+
     if (event.hostId.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ 
-        success: false, 
-        message: 'Not authorized to update this event' 
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to update this event'
       });
     }
-    
+
     const result = await events.findOneAndUpdate(
       { _id: new ObjectId(req.params.id) },
-      { 
-        $set: { 
-          ...req.body, 
-          updatedAt: new Date() 
-        } 
+      {
+        $set: {
+          ...req.body,
+          updatedAt: new Date()
+        }
       },
       { returnDocument: 'after' }
     );
-    
+
     res.status(200).json({
       success: true,
       data: result
@@ -115,25 +139,25 @@ export const deleteEvent = async (req, res, next) => {
   try {
     const db = getDB();
     const events = db.collection('events');
-    
+
     const event = await events.findOne({ _id: new ObjectId(req.params.id) });
-    
+
     if (!event) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Event not found' 
+      return res.status(404).json({
+        success: false,
+        message: 'Event not found'
       });
     }
-    
+
     if (event.hostId.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ 
-        success: false, 
-        message: 'Not authorized to delete this event' 
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to delete this event'
       });
     }
-    
+
     await events.deleteOne({ _id: new ObjectId(req.params.id) });
-    
+
     res.status(200).json({
       success: true,
       data: {}
@@ -147,42 +171,42 @@ export const joinEvent = async (req, res, next) => {
   try {
     const db = getDB();
     const events = db.collection('events');
-    
+
     const event = await events.findOne({ _id: new ObjectId(req.params.id) });
-    
+
     if (!event) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Event not found' 
+      return res.status(404).json({
+        success: false,
+        message: 'Event not found'
       });
     }
-    
+
     const userId = new ObjectId(req.user._id);
-    
+
     const alreadyJoined = event.attendees.some(id => id.equals(userId));
     if (alreadyJoined) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Already joined this event' 
+      return res.status(400).json({
+        success: false,
+        message: 'Already joined this event'
       });
     }
-    
+
     if (event.attendees.length >= event.maxAttendees) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Event is full' 
+      return res.status(400).json({
+        success: false,
+        message: 'Event is full'
       });
     }
-    
+
     const result = await events.findOneAndUpdate(
       { _id: new ObjectId(req.params.id) },
-      { 
+      {
         $push: { attendees: userId },
         $set: { updatedAt: new Date() }
       },
       { returnDocument: 'after' }
     );
-    
+
     res.status(200).json({
       success: true,
       data: result
