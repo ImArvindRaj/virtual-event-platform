@@ -1,6 +1,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import api from "../../services/api.service";
+import { Button } from "@/components/common/Button";
+import { Input } from "@/components/common/Input";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Calendar, Users, Type, AlignLeft, ArrowLeft, Upload } from "lucide-react";
+import showToast from "@/utils/toast";
 
 export default function EventCreate() {
   const [formData, setFormData] = useState({
@@ -17,25 +22,18 @@ export default function EventCreate() {
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    // Title validation
     if (!formData.title.trim()) {
       newErrors.title = "Event title is required";
     } else if (formData.title.length < 3) {
       newErrors.title = "Title must be at least 3 characters";
-    } else if (formData.title.length > 100) {
-      newErrors.title = "Title cannot exceed 100 characters";
     }
 
-    // Description validation
     if (!formData.description.trim()) {
       newErrors.description = "Description is required";
     } else if (formData.description.length < 10) {
       newErrors.description = "Description must be at least 10 characters";
-    } else if (formData.description.length > 500) {
-      newErrors.description = "Description cannot exceed 500 characters";
     }
 
-    // Scheduled time validation
     if (!formData.scheduledAt) {
       newErrors.scheduledAt = "Scheduled time is required";
     } else {
@@ -46,11 +44,8 @@ export default function EventCreate() {
       }
     }
 
-    // Max attendees validation
     if (formData.maxAttendees < 2) {
       newErrors.maxAttendees = "At least 2 attendees required";
-    } else if (formData.maxAttendees > 1000) {
-      newErrors.maxAttendees = "Maximum 1000 attendees allowed";
     }
 
     setErrors(newErrors);
@@ -66,7 +61,6 @@ export default function EventCreate() {
       [name]: name === "maxAttendees" ? parseInt(value) || 0 : value,
     }));
 
-    // Clear error when user modifies field
     if (errors[name]) {
       setErrors((prev) => {
         const newErrors = { ...prev };
@@ -83,22 +77,18 @@ export default function EventCreate() {
 
     setLoading(true);
     try {
-      const { data } = await api.post("/events", formData);
-      console.log(data);
-
+      await api.post("/events", formData);
+      showToast.success("Event created successfully!");
       navigate("/");
     } catch (error: any) {
-      setErrors({
-        submit:
-          error.response?.data?.message ||
-          "Failed to create event. Please try again.",
-      });
+      showToast.error(
+        error.response?.data?.message || "Failed to create event. Please try again."
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  // Get minimum datetime (current time + 1 hour)
   const getMinDateTime = () => {
     const now = new Date();
     now.setHours(now.getHours() + 1);
@@ -106,153 +96,129 @@ export default function EventCreate() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4">
-      <div className="max-w-2xl mx-auto bg-white p-8 rounded-lg shadow-md">
-        <h2 className="text-3xl font-bold mb-6 text-gray-800">
-          Create New Event
-        </h2>
+    <div className="min-h-screen bg-gray-50/50 dark:bg-gray-950 py-12 px-4">
+      <div className="max-w-3xl mx-auto">
+        <Button
+          variant="ghost"
+          onClick={() => navigate(-1)}
+          className="mb-6 hover:bg-transparent hover:text-indigo-600 pl-0"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Back to Events
+        </Button>
 
-        {errors.submit && (
-          <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-            {errors.submit}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Title */}
+        <div className="grid gap-8">
           <div>
-            <label
-              htmlFor="title"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Event Title <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              id="title"
-              name="title"
-              value={formData.title}
-              onChange={handleChange}
-              className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                errors.title ? "border-red-500" : "border-gray-300"
-              }`}
-              placeholder="e.g., Tech Conference 2025"
-              maxLength={100}
-            />
-            <div className="flex justify-between items-center mt-1">
-              {errors.title && (
-                <p className="text-red-500 text-sm">{errors.title}</p>
-              )}
-              <span className="text-gray-400 text-sm ml-auto">
-                {formData.title.length}/100
-              </span>
-            </div>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Create New Event</h1>
+            <p className="text-gray-500 dark:text-gray-400">Fill in the details to host your next amazing virtual event.</p>
           </div>
 
-          {/* Description */}
-          <div>
-            <label
-              htmlFor="description"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Description <span className="text-red-500">*</span>
-            </label>
-            <textarea
-              id="description"
-              name="description"
-              value={formData.description}
-              onChange={handleChange}
-              rows={5}
-              className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                errors.description ? "border-red-500" : "border-gray-300"
-              }`}
-              placeholder="Describe your event, what attendees can expect, topics to be covered..."
-              maxLength={500}
-            />
-            <div className="flex justify-between items-center mt-1">
-              {errors.description && (
-                <p className="text-red-500 text-sm">{errors.description}</p>
-              )}
-              <span className="text-gray-400 text-sm ml-auto">
-                {formData.description.length}/500
-              </span>
-            </div>
-          </div>
+          <Card className="border-gray-200 dark:border-gray-800 shadow-lg">
+            <CardHeader className="border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50 p-6">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Event Details</h2>
+            </CardHeader>
+            <CardContent className="p-8">
+              <form onSubmit={handleSubmit} className="space-y-8">
+                <Input
+                  label="Event Title"
+                  name="title"
+                  value={formData.title}
+                  onChange={handleChange}
+                  placeholder="e.g., Global Tech Conference 2024"
+                  error={errors.title}
+                  leftIcon={<Type className="w-5 h-5" />}
+                  required
+                />
 
-          {/* Scheduled Time */}
-          <div>
-            <label
-              htmlFor="scheduledAt"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Scheduled Date & Time <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="datetime-local"
-              id="scheduledAt"
-              name="scheduledAt"
-              value={formData.scheduledAt}
-              onChange={handleChange}
-              min={getMinDateTime()}
-              className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                errors.scheduledAt ? "border-red-500" : "border-gray-300"
-              }`}
-            />
-            {errors.scheduledAt && (
-              <p className="text-red-500 text-sm mt-1">{errors.scheduledAt}</p>
-            )}
-          </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                    <AlignLeft className="w-4 h-4" />
+                    Description <span className="text-red-500">*</span>
+                  </label>
+                  <textarea
+                    name="description"
+                    value={formData.description}
+                    onChange={handleChange}
+                    rows={5}
+                    className={`w-full p-4 rounded-xl border bg-gray-50 dark:bg-gray-900 focus:bg-white dark:focus:bg-gray-950 transition-all outline-none focus:ring-4 focus:ring-indigo-500/10 ${errors.description
+                        ? "border-red-400 focus:border-red-500"
+                        : "border-gray-200 dark:border-gray-800 focus:border-indigo-500"
+                      }`}
+                    placeholder="Describe what your event is about..."
+                  />
+                  {errors.description && (
+                    <p className="text-xs text-red-600 font-medium">{errors.description}</p>
+                  )}
+                </div>
 
-          {/* Max Attendees */}
-          <div>
-            <label
-              htmlFor="maxAttendees"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Maximum Attendees <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="number"
-              id="maxAttendees"
-              name="maxAttendees"
-              value={formData.maxAttendees}
-              onChange={handleChange}
-              min={2}
-              max={1000}
-              className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                errors.maxAttendees ? "border-red-500" : "border-gray-300"
-              }`}
-            />
-            {errors.maxAttendees && (
-              <p className="text-red-500 text-sm mt-1">{errors.maxAttendees}</p>
-            )}
-            <p className="text-gray-500 text-sm mt-1">
-              Between 2 and 1000 participants
-            </p>
-          </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <Input
+                    label="Date & Time"
+                    name="scheduledAt"
+                    type="datetime-local"
+                    value={formData.scheduledAt}
+                    onChange={handleChange}
+                    min={getMinDateTime()}
+                    error={errors.scheduledAt}
+                    leftIcon={<Calendar className="w-5 h-5" />}
+                    required
+                  />
 
-          {/* Buttons */}
-          <div className="flex gap-4">
-            <button
-              type="submit"
-              disabled={loading}
-              className={`flex-1 p-3 rounded-lg font-semibold text-white transition ${
-                loading
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-blue-600 hover:bg-blue-700"
-              }`}
-            >
-              {loading ? "Creating Event..." : "Create Event"}
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate("/")}
-              className="px-6 py-3 border border-gray-300 rounded-lg font-semibold text-gray-700 hover:bg-gray-50 transition"
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
+                  <Input
+                    label="Max Attendees"
+                    name="maxAttendees"
+                    type="number"
+                    value={formData.maxAttendees}
+                    onChange={handleChange}
+                    min={2}
+                    max={1000}
+                    error={errors.maxAttendees}
+                    leftIcon={<Users className="w-5 h-5" />}
+                    required
+                    helperText="Limit between 2 and 1000 attendees"
+                  />
+                </div>
+
+                {/* Cover Image Placeholder - Future Feature */}
+                <div className="pt-4 border-t border-gray-100 dark:border-gray-800">
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                    Cover Image (Optional)
+                  </label>
+                  <div className="border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl p-8 text-center hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors cursor-pointer bg-gray-50 dark:bg-gray-900/50 group">
+                    <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-900/20 rounded-full flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
+                      <Upload className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">
+                      Click to upload or drag and drop
+                    </p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                      SVG, PNG, JPG or GIF (max. 800x400px)
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-4 pt-4">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => navigate("/")}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    variant="gradient"
+                    size="lg"
+                    isLoading={loading}
+                    className="min-w-[150px] shadow-lg shadow-indigo-500/25"
+                  >
+                    Create Event
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

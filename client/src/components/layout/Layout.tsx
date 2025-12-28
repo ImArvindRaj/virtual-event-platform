@@ -1,30 +1,15 @@
-import { Outlet, Link } from "react-router";
-import { useAuth } from "../../context/AuthContext";
+import { Outlet } from "react-router";
+import { Navbar } from "./Navbar";
+import { Footer } from "./Footer";
 
 export default function Layout() {
-  const { user, logout } = useAuth();
-
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow-md p-4">
-        <div className="container mx-auto flex justify-between items-center">
-          <Link to="/" className="text-xl font-bold">
-            Event Platform
-          </Link>
-          <div className="flex gap-4 items-center">
-            <span>Welcome, {user?.name}</span>
-            <button
-              onClick={logout}
-              className="bg-red-600 text-white px-4 py-2 rounded"
-            >
-              Logout
-            </button>
-          </div>
-        </div>
-      </nav>
-      <main>
+    <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-950 font-body">
+      <Navbar />
+      <main className="flex-grow">
         <Outlet />
       </main>
+      <Footer />
     </div>
   );
 }
